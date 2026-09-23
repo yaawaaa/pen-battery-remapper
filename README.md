@@ -2,6 +2,10 @@
 
 > A lightweight utility for Xiaomi Pen Gen 2 on Xiaomi Pad / Android devices.
 
+## 📥 Download
+
+Get the latest APK directly from the [Releases Page](https://github.com/yaawaaa/pen-battery-checker/releases).
+
 ## Overview
 
 **Pen Battery Checker** is an open-source Android utility application designed specifically for monitoring the battery level and connection status of the Xiaomi Stylus Pen (Gen 2) on supported Xiaomi Pad and Android tablet devices.
