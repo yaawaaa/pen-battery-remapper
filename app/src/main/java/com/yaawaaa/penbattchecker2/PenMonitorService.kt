@@ -10,6 +10,9 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.yaawaaa.penbattchecker2.data.AppDatabase
+import com.yaawaaa.penbattchecker2.data.BatteryRepository
+import com.yaawaaa.penbattchecker2.notification.LowPowerNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,14 +31,22 @@ class PenMonitorService : Service() {
 
     private val job = Job()
     private val scope = CoroutineScope(Dispatchers.IO + job)
-    // Assume disconnected initially, or we could determine initial state in onCreate.
-    // To avoid false positive on first start, we'll initialize it to null
+    
     private var isConnected: Boolean? = null
+    private var lastLoggedLevel: Int? = null
+    private var lastLoggedConnected: Boolean? = null
+
+    private lateinit var repository: BatteryRepository
+    private lateinit var lowPowerNotificationManager: LowPowerNotificationManager
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        val db = AppDatabase.getDatabase(this)
+        repository = BatteryRepository(db.batteryLogDao())
+        lowPowerNotificationManager = LowPowerNotificationManager(this)
+
         createChannels()
         startForegroundService()
         startMonitoring()
@@ -62,6 +73,7 @@ class PenMonitorService : Service() {
             .setContentText("Monitoring pen connection state in background")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -101,6 +113,22 @@ class PenMonitorService : Service() {
             }
         } catch (e: Exception) {
             false
+        }
+
+        // Log battery level and check low power if reading valid
+        if (batteryLevel != null) {
+            val level = batteryLevel
+            if (lastLoggedLevel != level || lastLoggedConnected != currentlyConnected) {
+                lastLoggedLevel = level
+                lastLoggedConnected = currentlyConnected
+                scope.launch {
+                    repository.insertLog(level = level, isConnected = currentlyConnected)
+                }
+            }
+
+            if (currentlyConnected) {
+                lowPowerNotificationManager.checkAndNotifyLowPower(level)
+            }
         }
 
         if (isConnected == null) {
@@ -146,6 +174,7 @@ class PenMonitorService : Service() {
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDefaults(Notification.DEFAULT_ALL)
             .setOngoing(isOngoing)
             .addAction(0, "Refresh", refreshPendingIntent)
@@ -163,14 +192,18 @@ class PenMonitorService : Service() {
             "pen_monitor_channel",
             "Pen Monitor Service",
             NotificationManager.IMPORTANCE_MIN
-        )
+        ).apply {
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        }
         manager.createNotificationChannel(monitorChannel)
 
         val alertChannel = NotificationChannel(
             "pen_alert_channel",
             "Pen Connection Alerts",
             NotificationManager.IMPORTANCE_HIGH
-        )
+        ).apply {
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        }
         manager.createNotificationChannel(alertChannel)
     }
 

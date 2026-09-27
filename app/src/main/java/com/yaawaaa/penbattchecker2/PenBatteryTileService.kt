@@ -3,7 +3,6 @@ package com.yaawaaa.penbattchecker2
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.service.quicksettings.Tile
@@ -17,6 +16,11 @@ class PenBatteryTileService : TileService() {
     private val TAG = "PenBatteryTileService"
     private val BATTERY_FILE_PATH = "/sys/class/power_supply/idt/reverse_pen_soc"
     private val CHANNEL_ID = "PenBatteryChannel"
+
+    override fun onTileAdded() {
+        super.onTileAdded()
+        updateTile()
+    }
 
     override fun onStartListening() {
         super.onStartListening()
