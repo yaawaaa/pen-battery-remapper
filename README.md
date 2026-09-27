@@ -1,67 +1,102 @@
-# Pen Battery Checker
+# Pen Battery & Remapper
 
-> A lightweight utility for Xiaomi Pen Gen 2 on Xiaomi Pad / Android devices.
+> A powerful utility & key remapping suite for Xiaomi Stylus Pens on Xiaomi Pad and Android tablet devices.
 
 ## 📥 Download
 
-Get the latest APK directly from the [Releases Page](https://github.com/yaawaaa/pen-battery-checker/releases).
+Get the latest APK directly from the [Releases Page](https://github.com/yaawaaa/pen-battery-remapper/releases/tag/v2.0.0).
 
-## Overview
+---
 
-**Pen Battery Checker** is an open-source Android utility application designed specifically for monitoring the battery level and connection status of the Xiaomi Stylus Pen (Gen 2) on supported Xiaomi Pad and Android tablet devices.
+## 🚀 Overview
 
-## Features
+**Pen Battery & Remapper** is an open-source Android application that combines real-time stylus battery monitoring with deep hardware button remapping, custom gestures, floating Air Command sidebar toolbars, and per-app profile customizations.
 
-- **Single-Screen Modern UI**: Jetpack Compose single-screen layout with real-time status display, battery percentage indicators, and manual refresh controls.
-- **Quick Settings Tile**: Android Quick Settings Tile integration allowing instant battery status checks directly from the system shade with push notifications.
-- **Persistent Notification Center Alert**: Dynamic notification banner featuring quick **Refresh** and **Dismiss** actions for seamless interaction.
-- **Glance Home Screen Widget**: App Widget built with Jetpack Glance for at-a-glance battery level updates on your home screen.
-- **Hardware-Specific Edge Case Handling**: Dedicated parsing logic to accurately filter raw sysfs values, specifically handling `50%` disconnected defaults and `255%` transient connection states.
+---
 
-## How It Works
+## ✨ Features
+
+### 🔋 Battery Checker Tab
+* **Live Connection & Charging Gauge**: Real-time status display with custom gauge arcs, live battery percentages, and active magnetic charging indicators.
+* **Quick Settings Battery Tile**: Android Quick Settings Tile integration with presence verification and a manual "Add Tile" trigger directly from the app.
+* **Battery Discharge History Chart**: Interactive smooth line chart detailing historical battery discharge levels and sample stats.
+* **Glance Home Screen Widget**: At-a-glance battery updates directly on your home screen.
+* **Persistent Notification Center Alerts**: Dynamic notification banner with quick refresh and dismiss controls.
+* **Hardware Edge-Case Filtering**: Filters raw sysfs values (such as `50%` disconnected defaults and `255%` transient states) for accurate readings.
+
+### 🔘 Key Remapper Tab
+* **Primary & Secondary Button Remapping**:
+  * Complete support for **Single Click**, **Double Click**, **Triple Click**, and **Long Press** on both physical buttons (Top Page Up / 92 and Bottom Page Down / 93).
+  * **Per-gesture reset buttons** on every gesture for effortless configuration resets.
+  * **Dual-Action Gestures**: Trigger two sequential actions (e.g., launch app + simulate keyboard shortcut) on a single gesture.
+* **Air Command Floating Sidebar Toolbar**:
+  * Floating sidebar toolbar with an **iOS-inspired frosted glass translucent design**.
+  * **Live Toolbar Resizing Slider** (0.65x to 1.30x scaling) with a reset scale button and live test overlay trigger.
+  * Customizable shortcuts for apps, system actions, shortcuts, and utilities.
+* **Per-App Profiles**:
+  * Dedicated gesture profiles for specific applications (e.g., GoodNotes, Squid, Concepts, Clip Studio Paint).
+  * Complete **triple-click gesture support** across all per-app profile definitions.
+* **Note-Taking Pen/Eraser Toggle Presets**:
+  * Presets for standard note apps (e.g., `E` key, `CTRL+E`, `Stylus Button 202`).
+* **Backup & Restore**:
+  * Full JSON export and import for all settings and per-app profiles.
+* **Interactive Key Tester**:
+  * Live key code detector and test key press simulator.
+
+---
+
+## 🛠️ How It Works
 
 ### Hardware Sysfs Node Path
-The app queries the Linux kernel power supply subsystem node exposed by the Xiaomi tablet firmware:
+The battery status is queried from the kernel power supply subsystem node exposed by Xiaomi tablet firmware:
 ```
 /sys/class/power_supply/idt/reverse_pen_soc
 ```
 
 ### State Detection Logic
-1. **Disconnected State (`50%`)**: When the pen is unattached or inactive, the kernel driver defaults to reporting `50` (or `50%`). The app interprets this value as **Disconnected** rather than a valid 50% state.
-2. **Transient Connecting State (`255`)**: During initial magnetic attachment or pairing transitions, the kernel briefly reports `255`. The app filters out `255` as a transient state and retains the last valid state until state stabilization.
-3. **Active Charge/Level (`0% – 100%`)**: Valid readings within range are reported directly to the UI, Widget, and Notifications.
+1. **Disconnected State (`50%`)**: Unattached or inactive pen states default to `50%`. The app accurately parses this as **Disconnected**.
+2. **Transient Connecting State (`255`)**: Brief pairing transitions report `255`, which the app filters out to prevent erroneous readings.
+3. **Active Charge/Level (`0% – 100%`)**: Valid readings are instantly broadcasted across the UI, Quick Settings Tile, Home Screen Widget, and Notifications.
 
-## Requirements & Permissions
+---
+
+## 📱 Requirements & Permissions
 
 ### Requirements
-- **Android OS**: Android 8.0 (API Level 26) or higher.
-- **Hardware**: Xiaomi Pad device with Xiaomi Smart Pen / Pen Gen 2 support.
+* **Android OS**: Android 8.0 (API Level 26) or higher.
+* **Hardware**: Xiaomi Pad device with Xiaomi Smart Pen / Pen Gen 2 support.
 
 ### Permissions
-- `POST_NOTIFICATIONS`: Required on Android 13 (API Level 33) and above to display battery status notifications, QS tile alerts, and background status updates.
-- `FOREGROUND_SERVICE`: Required to run foreground services for background monitoring and persistent status notifications when enabled.
+* `POST_NOTIFICATIONS`: Required on Android 13+ to display battery status notifications and QS tile alerts.
+* `SYSTEM_ALERT_WINDOW`: Required for the floating Air Command sidebar overlay.
+* `BIND_ACCESSIBILITY_SERVICE`: Required for global hardware button remapping without root.
+* `FOREGROUND_SERVICE`: Required for background battery monitoring and persistent overlay services.
 
-## Build & Run
+---
+
+## 🔨 Build & Installation
 
 ### Prerequisites
-- JDK 17 or higher
-- Android SDK 35
+* JDK 17 or higher
+* Android SDK 37
 
 ### Building from Source
 
-To build the debug APK using Gradle:
+To compile the release APK:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/PenBatteryChecker.git
-cd PenBatteryChecker
+git clone https://github.com/yaawaaa/pen-battery-remapper.git
+cd pen-battery-remapper
 
 # Build debug APK
 ./gradlew assembleDebug
 ```
 
-The compiled debug APK will be located at `app/build/outputs/apk/debug/app-debug.apk`.
+The compiled APK will be located at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## License
+---
+
+## 📄 License
 
 Distributed under the Apache 2.0 License. See [`LICENSE`](LICENSE) for details.

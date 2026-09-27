@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.yaawaaa.penbattchecker2"
+    namespace = "com.yaawaaa.penbatteryremapper"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.yaawaaa.penbattchecker2"
+        applicationId = "com.yaawaaa.penbatteryremapper"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
