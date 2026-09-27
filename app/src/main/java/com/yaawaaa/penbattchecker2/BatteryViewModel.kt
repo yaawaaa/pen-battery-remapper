@@ -31,8 +31,8 @@ sealed class BatteryState {
 }
 
 sealed class ChargingStatus {
-    data class Supported(val statusText: String, val isCharging: Boolean) : ChargingStatus()
-    object Unsupported : ChargingStatus()
+    data class DockedAndCharging(val level: Int) : ChargingStatus()
+    object Disconnected : ChargingStatus()
 }
 
 class BatteryViewModel(application: Application) : AndroidViewModel(application) {
@@ -42,7 +42,7 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
     private val _batteryState = MutableStateFlow<BatteryState>(BatteryState.Loading)
     val batteryState: StateFlow<BatteryState> = _batteryState.asStateFlow()
 
-    private val _chargingStatus = MutableStateFlow<ChargingStatus>(ChargingStatus.Unsupported)
+    private val _chargingStatus = MutableStateFlow<ChargingStatus>(ChargingStatus.Disconnected)
     val chargingStatus: StateFlow<ChargingStatus> = _chargingStatus.asStateFlow()
 
     private val _isServiceRunning = MutableStateFlow(false)
@@ -107,7 +107,7 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private suspend fun readBatteryAndCharging() {
-        // Read battery percentage from sysfs
+        // Read battery percentage from sysfs and determine connection / charging status
         try {
             val file = File(batteryFilePath)
             if (file.exists() && file.canRead()) {
@@ -122,65 +122,29 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
                     )
                     // Log to Room DB
                     repository.insertLog(level = level, isConnected = isConnected)
+
+                    _chargingStatus.value = if (level != 50) {
+                        ChargingStatus.DockedAndCharging(level)
+                    } else {
+                        ChargingStatus.Disconnected
+                    }
                 } else if (level == 255) {
                     // Ignore transient 255 spike
                 } else {
                     _batteryState.value = BatteryState.Error("Invalid battery format: $content")
+                    _chargingStatus.value = ChargingStatus.Disconnected
                 }
             } else if (!file.exists()) {
                 _batteryState.value = BatteryState.Error("File not found: $batteryFilePath")
+                _chargingStatus.value = ChargingStatus.Disconnected
             } else {
                 _batteryState.value = BatteryState.Error("Permission denied: $batteryFilePath")
+                _chargingStatus.value = ChargingStatus.Disconnected
             }
         } catch (e: Exception) {
             _batteryState.value = BatteryState.Error(e.message ?: "Unknown error")
+            _chargingStatus.value = ChargingStatus.Disconnected
         }
-
-        // Read charging status
-        _chargingStatus.value = detectChargingStatus()
-    }
-
-    private fun detectChargingStatus(): ChargingStatus {
-        val candidatePaths = listOf(
-            "/sys/class/power_supply/idt/status",
-            "/sys/class/power_supply/idt/charging_status",
-            "/sys/class/power_supply/wireless/status",
-            "/sys/class/power_supply/battery/status",
-            "/sys/class/power_supply/pen/status"
-        )
-
-        for (path in candidatePaths) {
-            val file = File(path)
-            if (file.exists() && file.canRead()) {
-                val text = file.readText().trim()
-                if (text.isNotEmpty()) {
-                    val isCharging = text.equals("Charging", ignoreCase = true) ||
-                            text.equals("Full", ignoreCase = true)
-                    return ChargingStatus.Supported(statusText = text, isCharging = isCharging)
-                }
-            }
-        }
-
-        // Check any subdirectory of /sys/class/power_supply/
-        try {
-            val sysfsDir = File("/sys/class/power_supply")
-            if (sysfsDir.exists() && sysfsDir.isDirectory) {
-                sysfsDir.listFiles()?.forEach { subDir ->
-                    val statusFile = File(subDir, "status")
-                    if (statusFile.exists() && statusFile.canRead()) {
-                        val text = statusFile.readText().trim()
-                        if (text.isNotEmpty() && !text.equals("Unknown", ignoreCase = true)) {
-                            val isCharging = text.equals("Charging", ignoreCase = true) ||
-                                    text.equals("Full", ignoreCase = true)
-                            return ChargingStatus.Supported(statusText = text, isCharging = isCharging)
-                        }
-                    }
-                }
-            }
-        } catch (_: Exception) {
-        }
-
-        return ChargingStatus.Unsupported
     }
 
     fun addSampleLogs() {

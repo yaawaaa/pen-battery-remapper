@@ -10,12 +10,11 @@ class BatteryViewModelTest {
 
     @Test
     fun testChargingStatusDataClasses() {
-        val supportedStatus = ChargingStatus.Supported(statusText = "Charging", isCharging = true)
-        assertTrue(supportedStatus.isCharging)
-        assertEquals("Charging", supportedStatus.statusText)
+        val dockedStatus = ChargingStatus.DockedAndCharging(level = 85)
+        assertEquals(85, dockedStatus.level)
 
-        val unsupportedStatus: ChargingStatus = ChargingStatus.Unsupported
-        assertNotNull(unsupportedStatus)
+        val disconnectedStatus: ChargingStatus = ChargingStatus.Disconnected
+        assertNotNull(disconnectedStatus)
     }
 
     @Test

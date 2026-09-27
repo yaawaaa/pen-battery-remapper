@@ -22,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddChart
 import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.BatteryStd
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Refresh
@@ -320,23 +319,11 @@ fun HeroBatteryCard(batteryState: BatteryState) {
 @Composable
 fun ChargingStatusSection(chargingStatus: ChargingStatus) {
     when (chargingStatus) {
-        is ChargingStatus.Supported -> {
-            val isCharging = chargingStatus.isCharging
-            val containerColor = if (isCharging) {
-                Color(0xFFE8F5E9)
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            }
-            val contentColor = if (isCharging) {
-                Color(0xFF2E7D32)
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-
+        is ChargingStatus.DockedAndCharging -> {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = containerColor)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
             ) {
                 Row(
                     modifier = Modifier
@@ -348,15 +335,15 @@ fun ChargingStatusSection(chargingStatus: ChargingStatus) {
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                color = if (isCharging) Color(0xFFA5D6A7) else MaterialTheme.colorScheme.surfaceVariant,
+                                color = Color(0xFFA5D6A7),
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (isCharging) Icons.Default.Bolt else Icons.Default.BatteryStd,
-                            contentDescription = "Charging Icon",
-                            tint = if (isCharging) Color(0xFF1B5E20) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = "Connected & Docked (Charging)",
+                            tint = Color(0xFF1B5E20),
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -365,27 +352,27 @@ fun ChargingStatusSection(chargingStatus: ChargingStatus) {
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isCharging) "Charging (${chargingStatus.statusText})" else "Not Charging (${chargingStatus.statusText})",
+                            text = "Connected & Docked (Charging)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = contentColor
+                            color = Color(0xFF2E7D32)
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = if (isCharging) "Pen is connected to charging dock/coil" else "Running on internal battery power",
+                            text = "Charging on Magnetic Strip (${chargingStatus.level}%)",
                             style = MaterialTheme.typography.bodySmall,
-                            color = contentColor.copy(alpha = 0.8f)
+                            color = Color(0xFF2E7D32).copy(alpha = 0.8f)
                         )
                     }
                 }
             }
         }
-        is ChargingStatus.Unsupported -> {
+        is ChargingStatus.Disconnected -> {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             ) {
                 Row(
@@ -398,15 +385,15 @@ fun ChargingStatusSection(chargingStatus: ChargingStatus) {
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.12f),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.PowerOff,
-                            contentDescription = "Unsupported Charging Status",
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            contentDescription = "Disconnected (Off Magnetic Strip)",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -415,16 +402,16 @@ fun ChargingStatusSection(chargingStatus: ChargingStatus) {
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Charging status detection not supported on this device",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = "Disconnected (Off Magnetic Strip)",
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Sysfs power_supply nodes for charging status were not detected on this hardware.",
+                            text = "Pen is detached from magnetic charging strip",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
