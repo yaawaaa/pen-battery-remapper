@@ -5,10 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.service.quicksettings.TileService
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.yaawaaa.penbattchecker2.data.AppDatabase
 import com.yaawaaa.penbattchecker2.data.BatteryRepository
@@ -44,7 +47,7 @@ class PenMonitorService : Service() {
     override fun onCreate() {
         super.onCreate()
         val db = AppDatabase.getDatabase(this)
-        repository = BatteryRepository(db.batteryLogDao())
+        repository = BatteryRepository(db.batteryLogDao(), this)
         lowPowerNotificationManager = LowPowerNotificationManager(this)
 
         createChannels()
@@ -92,6 +95,17 @@ class PenMonitorService : Service() {
         }
     }
 
+    private fun updateQuickSettingsTile() {
+        try {
+            TileService.requestListeningState(
+                this,
+                ComponentName(this, PenBatteryTileService::class.java)
+            )
+        } catch (e: Exception) {
+            Log.e("PenMonitorService", "Failed to update Quick Settings tile", e)
+        }
+    }
+
     private fun checkState(forceUpdate: Boolean) {
         val file = File("/sys/class/power_supply/idt/reverse_pen_soc")
         var batteryLevel: Int? = null
@@ -124,6 +138,8 @@ class PenMonitorService : Service() {
                 scope.launch {
                     repository.insertLog(level = level, isConnected = currentlyConnected)
                 }
+                // Request real-time tile update when battery level or connection state changes
+                updateQuickSettingsTile()
             }
 
             if (currentlyConnected) {
@@ -138,6 +154,7 @@ class PenMonitorService : Service() {
 
         if (forceUpdate || currentlyConnected != isConnected) {
             isConnected = currentlyConnected
+            updateQuickSettingsTile()
             if (currentlyConnected == true) {
                 postAlertNotification(
                     title = "Xiaomi Pen Gen 2",

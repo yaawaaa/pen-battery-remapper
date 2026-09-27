@@ -86,6 +86,8 @@ fun BatteryScreen(viewModel: BatteryViewModel = viewModel()) {
     val chargingStatus by viewModel.chargingStatus.collectAsState()
     val batteryLogs by viewModel.batteryLogs.collectAsState()
     val isServiceRunning by viewModel.isServiceRunning.collectAsState()
+    val isActivelyCharging by viewModel.isActivelyCharging.collectAsState()
+    val isLoggingEnabled by viewModel.isLoggingEnabled.collectAsState()
     val context = LocalContext.current
 
     Scaffold(
@@ -128,10 +130,16 @@ fun BatteryScreen(viewModel: BatteryViewModel = viewModel()) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. Hero Battery Level Gauge Card
-            HeroBatteryCard(batteryState = batteryState)
+            HeroBatteryCard(
+                batteryState = batteryState,
+                isActivelyCharging = isActivelyCharging
+            )
 
             // 2. Charging Status / Fallback Section
-            ChargingStatusSection(chargingStatus = chargingStatus)
+            ChargingStatusSection(
+                chargingStatus = chargingStatus,
+                isActivelyCharging = isActivelyCharging
+            )
 
             // 3. Battery Discharge History Chart Section
             BatteryDischargeHistorySection(
@@ -144,6 +152,9 @@ fun BatteryScreen(viewModel: BatteryViewModel = viewModel()) {
             QuickControlsSection(
                 isServiceRunning = isServiceRunning,
                 onToggleService = { viewModel.toggleService(context) },
+                isLoggingEnabled = isLoggingEnabled,
+                onToggleLogging = { viewModel.toggleLogging(it) },
+                onClearLogs = { viewModel.clearLogs() },
                 onRefresh = { viewModel.refresh() },
                 onAddSampleLogs = { viewModel.addSampleLogs() }
             )
@@ -154,7 +165,10 @@ fun BatteryScreen(viewModel: BatteryViewModel = viewModel()) {
 }
 
 @Composable
-fun HeroBatteryCard(batteryState: BatteryState) {
+fun HeroBatteryCard(
+    batteryState: BatteryState,
+    isActivelyCharging: Boolean = false
+) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -277,6 +291,33 @@ fun HeroBatteryCard(batteryState: BatteryState) {
                         }
                     }
 
+                    if (isActivelyCharging) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF2E7D32)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                    tint = Color.Yellow,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "⚡ Actively Charging (Battery Increasing)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
@@ -317,7 +358,10 @@ fun HeroBatteryCard(batteryState: BatteryState) {
 }
 
 @Composable
-fun ChargingStatusSection(chargingStatus: ChargingStatus) {
+fun ChargingStatusSection(
+    chargingStatus: ChargingStatus,
+    isActivelyCharging: Boolean = false
+) {
     when (chargingStatus) {
         is ChargingStatus.DockedAndCharging -> {
             Card(
@@ -352,7 +396,7 @@ fun ChargingStatusSection(chargingStatus: ChargingStatus) {
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Connected & Docked (Charging)",
+                            text = if (isActivelyCharging) "⚡ Actively Charging (Battery Increasing)" else "Connected & Docked (Charging)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2E7D32)
@@ -812,6 +856,9 @@ fun BatteryDischargeChart(
 fun QuickControlsSection(
     isServiceRunning: Boolean,
     onToggleService: () -> Unit,
+    isLoggingEnabled: Boolean,
+    onToggleLogging: (Boolean) -> Unit,
+    onClearLogs: () -> Unit,
     onRefresh: () -> Unit,
     onAddSampleLogs: () -> Unit
 ) {
@@ -888,10 +935,64 @@ fun QuickControlsSection(
                 }
             }
 
+            // Battery Logging Toggle Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isLoggingEnabled) Color(0xFFE3F2FD) else MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                color = if (isLoggingEnabled) Color(0xFF90CAF9) else MaterialTheme.colorScheme.outlineVariant,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Timeline,
+                            contentDescription = null,
+                            tint = if (isLoggingEnabled) Color(0xFF0D47A1) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Battery Logging",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isLoggingEnabled) Color(0xFF0D47A1) else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (isLoggingEnabled) "Enabled (Recording battery logs)" else "Paused (No new logs written)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isLoggingEnabled) Color(0xFF1565C0) else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Switch(
+                        checked = isLoggingEnabled,
+                        onCheckedChange = { onToggleLogging(it) }
+                    )
+                }
+            }
+
             // Refresh & Data Management Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     onClick = onRefresh,
@@ -901,10 +1002,10 @@ fun QuickControlsSection(
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Refresh Now")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Refresh", fontSize = 12.sp)
                 }
 
                 OutlinedButton(
@@ -915,10 +1016,24 @@ fun QuickControlsSection(
                     Icon(
                         imageVector = Icons.Default.AddChart,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Sample")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Sample", fontSize = 12.sp)
+                }
+
+                OutlinedButton(
+                    onClick = onClearLogs,
+                    modifier = Modifier.weight(1.2f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Clear Log History", fontSize = 11.sp, maxLines = 1)
                 }
             }
         }

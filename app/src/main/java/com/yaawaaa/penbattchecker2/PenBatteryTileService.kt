@@ -37,7 +37,7 @@ class PenBatteryTileService : TileService() {
         val tile = qsTile ?: return
         val batteryLevel = readBatteryLevel()
 
-        if (batteryLevel != null) {
+        if (batteryLevel != null && batteryLevel != 50 && batteryLevel != 255) {
             tile.state = Tile.STATE_ACTIVE
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle = "$batteryLevel%"
@@ -46,12 +46,12 @@ class PenBatteryTileService : TileService() {
                 tile.label = "Pen: $batteryLevel%"
             }
         } else {
-            tile.state = Tile.STATE_UNAVAILABLE
+            tile.state = Tile.STATE_INACTIVE
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "Unknown"
+                tile.subtitle = "Off"
                 tile.label = "Pen Battery"
             } else {
-                tile.label = "Pen: Unknown"
+                tile.label = "Pen: Off"
             }
         }
         tile.updateTile()
@@ -69,10 +69,10 @@ class PenBatteryTileService : TileService() {
         }
 
         val batteryLevel = readBatteryLevel()
-        val contentText = if (batteryLevel != null) {
+        val contentText = if (batteryLevel != null && batteryLevel != 50 && batteryLevel != 255) {
             "Current pen battery is $batteryLevel%"
         } else {
-            "Unable to read pen battery level"
+            "Pen disconnected (Off)"
         }
 
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager

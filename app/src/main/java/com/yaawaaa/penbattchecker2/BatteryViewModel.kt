@@ -48,11 +48,17 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
     private val _isServiceRunning = MutableStateFlow(false)
     val isServiceRunning: StateFlow<Boolean> = _isServiceRunning.asStateFlow()
 
+    private var previousLevel: Int? = null
+    private val _isActivelyCharging = MutableStateFlow(false)
+    val isActivelyCharging: StateFlow<Boolean> = _isActivelyCharging.asStateFlow()
+
+    val isLoggingEnabled: StateFlow<Boolean>
     val batteryLogs: StateFlow<List<BatteryLog>>
 
     init {
         val dao = AppDatabase.getDatabase(application).batteryLogDao()
-        repository = BatteryRepository(dao)
+        repository = BatteryRepository(dao, application)
+        isLoggingEnabled = repository.isLoggingEnabled
 
         batteryLogs = repository.getRecentLogs(100).stateIn(
             scope = viewModelScope,
@@ -62,6 +68,10 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
 
         checkServiceState()
         startPolling()
+    }
+
+    fun toggleLogging(enabled: Boolean) {
+        repository.setLoggingEnabled(enabled)
     }
 
     private fun startPolling() {
@@ -120,10 +130,16 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
                         isConnected = isConnected,
                         lastUpdated = System.currentTimeMillis()
                     )
-                    // Log to Room DB
+
+                    // Active charging trend detection: connected AND currentLevel > previousLevel
+                    val prev = previousLevel
+                    _isActivelyCharging.value = isConnected && (prev != null) && (level > prev)
+                    previousLevel = level
+
+                    // Log to Room DB (if logging enabled)
                     repository.insertLog(level = level, isConnected = isConnected)
 
-                    _chargingStatus.value = if (level != 50) {
+                    _chargingStatus.value = if (isConnected) {
                         ChargingStatus.DockedAndCharging(level)
                     } else {
                         ChargingStatus.Disconnected
@@ -133,17 +149,21 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     _batteryState.value = BatteryState.Error("Invalid battery format: $content")
                     _chargingStatus.value = ChargingStatus.Disconnected
+                    _isActivelyCharging.value = false
                 }
             } else if (!file.exists()) {
                 _batteryState.value = BatteryState.Error("File not found: $batteryFilePath")
                 _chargingStatus.value = ChargingStatus.Disconnected
+                _isActivelyCharging.value = false
             } else {
                 _batteryState.value = BatteryState.Error("Permission denied: $batteryFilePath")
                 _chargingStatus.value = ChargingStatus.Disconnected
+                _isActivelyCharging.value = false
             }
         } catch (e: Exception) {
             _batteryState.value = BatteryState.Error(e.message ?: "Unknown error")
             _chargingStatus.value = ChargingStatus.Disconnected
+            _isActivelyCharging.value = false
         }
     }
 
