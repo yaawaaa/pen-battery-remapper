@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "test2"
+rootProject.name = "pen v3 (same w v2, w optimizations)"
 include(":app")
  

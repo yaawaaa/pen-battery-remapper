@@ -10,18 +10,21 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.service.quicksettings.TileService
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.yaawaaa.penbatteryremapper.data.AppDatabase
 import com.yaawaaa.penbatteryremapper.data.BatteryRepository
 import com.yaawaaa.penbatteryremapper.notification.LowPowerNotificationManager
+import com.yaawaaa.penbatteryremapper.remapper.RootHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileInputStream
 
 class PenMonitorService : Service() {
 
@@ -42,6 +45,9 @@ class PenMonitorService : Service() {
     private lateinit var repository: BatteryRepository
     private lateinit var lowPowerNotificationManager: LowPowerNotificationManager
 
+    private val sysfsFile = File("/sys/class/power_supply/idt/reverse_pen_soc")
+    private val readBuffer = ByteArray(16)
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -52,6 +58,12 @@ class PenMonitorService : Service() {
 
         createChannels()
         startForegroundService()
+
+        scope.launch {
+            RootHelper.protectCurrentProcessFromLMK()
+            RootHelper.protectProcessFromBackgroundKill(packageName)
+        }
+
         startMonitoring()
     }
 
@@ -67,7 +79,7 @@ class PenMonitorService : Service() {
                 manager.cancel(STATE_NOTIFICATION_ID)
             }
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
 
     private fun startForegroundService() {
@@ -88,9 +100,17 @@ class PenMonitorService : Service() {
 
     private fun startMonitoring() {
         scope.launch {
+            val powerManager = getSystemService(POWER_SERVICE) as? PowerManager
             while (true) {
                 checkState(forceUpdate = false)
-                delay(2000)
+
+                val isInteractive = powerManager?.isInteractive ?: true
+                val pollingIntervalMs = when {
+                    !isInteractive -> 20000L // 20s when screen off
+                    isConnected != true -> 8000L // 8s when disconnected
+                    else -> 2000L // 2s when screen on and connected
+                }
+                delay(pollingIntervalMs)
             }
         }
     }
@@ -106,26 +126,40 @@ class PenMonitorService : Service() {
         }
     }
 
-    private fun checkState(forceUpdate: Boolean) {
-        val file = File("/sys/class/power_supply/idt/reverse_pen_soc")
-        var batteryLevel: Int? = null
-        val currentlyConnected = try {
-            if (file.exists() && file.canRead()) {
-                val content = file.readText().trim()
-                val value = content.toIntOrNull()
-                if (value != null) {
-                    if (value == 255) {
-                        return // Ignore 255% spike
+    private fun readSysfsSoc(): Int? {
+        if (!sysfsFile.exists() || !sysfsFile.canRead()) return null
+        return try {
+            FileInputStream(sysfsFile).use { fis ->
+                val bytesRead = fis.read(readBuffer)
+                if (bytesRead <= 0) return null
+                var value = 0
+                var hasDigits = false
+                for (i in 0 until bytesRead) {
+                    val b = readBuffer[i]
+                    if (b in '0'.code.toByte()..'9'.code.toByte()) {
+                        value = value * 10 + (b - '0'.code.toByte())
+                        hasDigits = true
+                    } else if (hasDigits) {
+                        break
                     }
-                    batteryLevel = value
-                    value != 50
-                } else {
-                    false
                 }
-            } else {
-                false
+                if (hasDigits) value else null
             }
         } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun checkState(forceUpdate: Boolean) {
+        var batteryLevel: Int? = null
+        val rawValue = readSysfsSoc()
+        val currentlyConnected = if (rawValue != null) {
+            if (rawValue == 255) {
+                return // Ignore 255% spike
+            }
+            batteryLevel = rawValue
+            rawValue != 50
+        } else {
             false
         }
 
@@ -223,6 +257,15 @@ class PenMonitorService : Service() {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         manager.createNotificationChannel(alertChannel)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            scope.launch {
+                System.gc()
+            }
+        }
     }
 
     override fun onDestroy() {

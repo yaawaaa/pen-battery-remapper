@@ -4,7 +4,7 @@
 
 ## 📥 Download
 
-Get the latest APK directly from the [Releases Page](https://github.com/yaawaaa/pen-battery-remapper/releases/tag/v2.0.0).
+Get the latest APK directly from the [Releases Page](https://github.com/yaawaaa/pen-battery-remapper/releases/tag/v3.0.0).
 
 ---
 

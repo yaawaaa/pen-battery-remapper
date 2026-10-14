@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.yaawaaa.penbatteryremapper.ui.ActionTargetSlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -62,6 +63,35 @@ class RemapperRepository(private val context: Context) {
         val LONG_PRESS_DURATION_MS = intPreferencesKey("long_press_duration_ms")
         val DOUBLE_CLICK_TIMEOUT_MS = intPreferencesKey("double_click_timeout_ms")
         val TRIPLE_CLICK_TIMEOUT_MS = intPreferencesKey("triple_click_timeout_ms")
+        val USE_CUSTOM_GESTURE_TIMEOUTS = booleanPreferencesKey("use_custom_gesture_timeouts")
+        val USE_CUSTOM_GESTURE_POSITIONS = booleanPreferencesKey("use_custom_gesture_positions")
+
+        val PRIMARY_CLICK_CUSTOM_POS_1 = booleanPreferencesKey("primary_click_custom_pos_1")
+        val PRIMARY_CLICK_CUSTOM_POS_2 = booleanPreferencesKey("primary_click_custom_pos_2")
+        val PRIMARY_DOUBLE_CLICK_CUSTOM_POS_1 = booleanPreferencesKey("primary_double_click_custom_pos_1")
+        val PRIMARY_DOUBLE_CLICK_CUSTOM_POS_2 = booleanPreferencesKey("primary_double_click_custom_pos_2")
+        val PRIMARY_TRIPLE_CLICK_CUSTOM_POS_1 = booleanPreferencesKey("primary_triple_click_custom_pos_1")
+        val PRIMARY_TRIPLE_CLICK_CUSTOM_POS_2 = booleanPreferencesKey("primary_triple_click_custom_pos_2")
+        val PRIMARY_LONG_PRESS_CUSTOM_POS_1 = booleanPreferencesKey("primary_long_press_custom_pos_1")
+        val PRIMARY_LONG_PRESS_CUSTOM_POS_2 = booleanPreferencesKey("primary_long_press_custom_pos_2")
+
+        val SECONDARY_CLICK_CUSTOM_POS_1 = booleanPreferencesKey("secondary_click_custom_pos_1")
+        val SECONDARY_CLICK_CUSTOM_POS_2 = booleanPreferencesKey("secondary_click_custom_pos_2")
+        val SECONDARY_DOUBLE_CLICK_CUSTOM_POS_1 = booleanPreferencesKey("secondary_double_click_custom_pos_1")
+        val SECONDARY_DOUBLE_CLICK_CUSTOM_POS_2 = booleanPreferencesKey("secondary_double_click_custom_pos_2")
+        val SECONDARY_TRIPLE_CLICK_CUSTOM_POS_1 = booleanPreferencesKey("secondary_triple_click_custom_pos_1")
+        val SECONDARY_TRIPLE_CLICK_CUSTOM_POS_2 = booleanPreferencesKey("secondary_triple_click_custom_pos_2")
+        val SECONDARY_LONG_PRESS_CUSTOM_POS_1 = booleanPreferencesKey("secondary_long_press_custom_pos_1")
+        val SECONDARY_LONG_PRESS_CUSTOM_POS_2 = booleanPreferencesKey("secondary_long_press_custom_pos_2")
+
+        val PRIMARY_DOUBLE_CLICK_TIMEOUT = intPreferencesKey("primary_double_click_timeout")
+        val PRIMARY_TRIPLE_CLICK_TIMEOUT = intPreferencesKey("primary_triple_click_timeout")
+        val PRIMARY_LONG_PRESS_DURATION = intPreferencesKey("primary_long_press_duration")
+
+        val SECONDARY_DOUBLE_CLICK_TIMEOUT = intPreferencesKey("secondary_double_click_timeout")
+        val SECONDARY_TRIPLE_CLICK_TIMEOUT = intPreferencesKey("secondary_triple_click_timeout")
+        val SECONDARY_LONG_PRESS_DURATION = intPreferencesKey("secondary_long_press_duration")
+
         val PRIMARY_APP_PACKAGE = stringPreferencesKey("primary_app_package")
         val SECONDARY_APP_PACKAGE = stringPreferencesKey("secondary_app_package")
         val DEVICE_NAME_FILTER = stringPreferencesKey("device_name_filter")
@@ -72,7 +102,107 @@ class RemapperRepository(private val context: Context) {
         val AIR_COMMAND_SCALE = floatPreferencesKey("air_command_scale")
         val AIR_COMMAND_OPACITY = floatPreferencesKey("air_command_opacity")
         val AIR_COMMAND_APPS = stringPreferencesKey("air_command_apps")
+        val POSITION_PRESETS_JSON = stringPreferencesKey("position_presets_json")
         val IS_TILE_ADDED = booleanPreferencesKey("is_tile_added")
+    }
+
+    companion object {
+        fun saveFastCacheSettings(context: Context, settings: RemapperSettings) {
+            try {
+                val prefs = context.getSharedPreferences("remapper_fast_cache", Context.MODE_PRIVATE)
+                prefs.edit().apply {
+                    putBoolean("remapper_enabled", settings.remapperEnabled)
+                    putString("engine_mode", settings.engineMode.name)
+                    putString("primary_click_action", settings.primaryClickAction.name)
+                    putString("primary_click_shortcut", settings.primaryClickShortcut)
+                    putString("primary_double_click_action", settings.primaryDoubleClickAction.name)
+                    putString("primary_double_click_shortcut", settings.primaryDoubleClickShortcut)
+                    putString("primary_triple_click_action", settings.primaryTripleClickAction.name)
+                    putString("primary_triple_click_shortcut", settings.primaryTripleClickShortcut)
+                    putString("primary_long_press_action", settings.primaryLongPressAction.name)
+                    putString("primary_long_press_shortcut", settings.primaryLongPressShortcut)
+                    putString("primary_click_action_2", settings.primaryClickAction2.name)
+                    putString("primary_click_app_package_2", settings.primaryClickAppPackage2)
+                    putString("primary_double_click_action_2", settings.primaryDoubleClickAction2.name)
+                    putString("primary_double_click_app_package_2", settings.primaryDoubleClickAppPackage2)
+                    putString("primary_triple_click_action_2", settings.primaryTripleClickAction2.name)
+                    putString("primary_triple_click_app_package_2", settings.primaryTripleClickAppPackage2)
+                    putString("primary_long_press_action_2", settings.primaryLongPressAction2.name)
+                    putString("primary_long_press_app_package_2", settings.primaryLongPressAppPackage2)
+
+                    putString("secondary_click_action", settings.secondaryClickAction.name)
+                    putString("secondary_click_shortcut", settings.secondaryClickShortcut)
+                    putString("secondary_double_click_action", settings.secondaryDoubleClickAction.name)
+                    putString("secondary_double_click_shortcut", settings.secondaryDoubleClickShortcut)
+                    putString("secondary_triple_click_action", settings.secondaryTripleClickAction.name)
+                    putString("secondary_triple_click_shortcut", settings.secondaryTripleClickShortcut)
+                    putString("secondary_long_press_action", settings.secondaryLongPressAction.name)
+                    putString("secondary_long_press_shortcut", settings.secondaryLongPressShortcut)
+                    putString("secondary_click_action_2", settings.secondaryClickAction2.name)
+                    putString("secondary_click_app_package_2", settings.secondaryClickAppPackage2)
+                    putString("secondary_double_click_action_2", settings.secondaryDoubleClickAction2.name)
+                    putString("secondary_double_click_app_package_2", settings.secondaryDoubleClickAppPackage2)
+                    putString("secondary_triple_click_action_2", settings.secondaryTripleClickAction2.name)
+                    putString("secondary_triple_click_app_package_2", settings.secondaryTripleClickAppPackage2)
+                    putString("secondary_long_press_action_2", settings.secondaryLongPressAction2.name)
+                    putString("secondary_long_press_app_package_2", settings.secondaryLongPressAppPackage2)
+
+                    putInt("long_press_duration_ms", settings.longPressDurationMs)
+                    putInt("double_click_timeout_ms", settings.doubleClickTimeoutMs)
+                    putInt("triple_click_timeout_ms", settings.tripleClickTimeoutMs)
+                    putBoolean("use_custom_gesture_timeouts", settings.useCustomGestureTimeouts)
+                    putBoolean("use_custom_gesture_positions", settings.useCustomGesturePositions)
+
+                    putBoolean("primary_click_custom_pos_1", settings.primaryClickCustomPos1)
+                    putBoolean("primary_click_custom_pos_2", settings.primaryClickCustomPos2)
+                    putBoolean("primary_double_click_custom_pos_1", settings.primaryDoubleClickCustomPos1)
+                    putBoolean("primary_double_click_custom_pos_2", settings.primaryDoubleClickCustomPos2)
+                    putBoolean("primary_triple_click_custom_pos_1", settings.primaryTripleClickCustomPos1)
+                    putBoolean("primary_triple_click_custom_pos_2", settings.primaryTripleClickCustomPos2)
+                    putBoolean("primary_long_press_custom_pos_1", settings.primaryLongPressCustomPos1)
+                    putBoolean("primary_long_press_custom_pos_2", settings.primaryLongPressCustomPos2)
+
+                    putBoolean("secondary_click_custom_pos_1", settings.secondaryClickCustomPos1)
+                    putBoolean("secondary_click_custom_pos_2", settings.secondaryClickCustomPos2)
+                    putBoolean("secondary_double_click_custom_pos_1", settings.secondaryDoubleClickCustomPos1)
+                    putBoolean("secondary_double_click_custom_pos_2", settings.secondaryDoubleClickCustomPos2)
+                    putBoolean("secondary_triple_click_custom_pos_1", settings.secondaryTripleClickCustomPos1)
+                    putBoolean("secondary_triple_click_custom_pos_2", settings.secondaryTripleClickCustomPos2)
+                    putBoolean("secondary_long_press_custom_pos_1", settings.secondaryLongPressCustomPos1)
+                    putBoolean("secondary_long_press_custom_pos_2", settings.secondaryLongPressCustomPos2)
+
+                    putInt("primary_double_click_timeout", settings.primaryDoubleClickTimeoutMs)
+                    putInt("primary_triple_click_timeout", settings.primaryTripleClickTimeoutMs)
+                    putInt("primary_long_press_duration", settings.primaryLongPressDurationMs)
+                    putInt("secondary_double_click_timeout", settings.secondaryDoubleClickTimeoutMs)
+                    putInt("secondary_triple_click_timeout", settings.secondaryTripleClickTimeoutMs)
+                    putInt("secondary_long_press_duration", settings.secondaryLongPressDurationMs)
+
+                    putString("primary_app_package", settings.primaryAppPackage)
+                    putString("secondary_app_package", settings.secondaryAppPackage)
+                    putString("device_name_filter", settings.deviceNameFilter)
+
+                    putBoolean("air_command_enabled", settings.airCommandEnabled)
+                    putBoolean("show_edge_handle", settings.showEdgeHandle)
+                    putFloat("air_command_scale", settings.airCommandScale)
+                    putFloat("air_command_opacity", settings.airCommandOpacity)
+                    putString("air_command_apps", settings.airCommandApps)
+                    putString("position_presets_json", settings.positionPresetsJson)
+                    apply()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        fun saveFastCacheProfiles(context: Context, json: String) {
+            try {
+                val prefs = context.getSharedPreferences("remapper_fast_cache", Context.MODE_PRIVATE)
+                prefs.edit().putString("app_profiles_json", json).apply()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     val isTileAdded: Flow<Boolean> = context.remapperDataStore.data
@@ -102,7 +232,7 @@ class RemapperRepository(private val context: Context) {
             }
         }
         .map { preferences ->
-            RemapperSettings(
+            val settings = RemapperSettings(
                 remapperEnabled = preferences[PreferencesKeys.REMAPPER_ENABLED] ?: false,
                 engineMode = EngineMode.fromNameOrDefault(
                     preferences[PreferencesKeys.ENGINE_MODE],
@@ -190,7 +320,31 @@ class RemapperRepository(private val context: Context) {
                 secondaryLongPressAppPackage2 = preferences[PreferencesKeys.SECONDARY_LONG_PRESS_APP_PACKAGE_2] ?: "",
                 longPressDurationMs = preferences[PreferencesKeys.LONG_PRESS_DURATION_MS] ?: 500,
                 doubleClickTimeoutMs = preferences[PreferencesKeys.DOUBLE_CLICK_TIMEOUT_MS] ?: 300,
-                tripleClickTimeoutMs = preferences[PreferencesKeys.TRIPLE_CLICK_TIMEOUT_MS] ?: 400,
+                tripleClickTimeoutMs = preferences[PreferencesKeys.TRIPLE_CLICK_TIMEOUT_MS] ?: 350,
+                useCustomGestureTimeouts = preferences[PreferencesKeys.USE_CUSTOM_GESTURE_TIMEOUTS] ?: false,
+                useCustomGesturePositions = preferences[PreferencesKeys.USE_CUSTOM_GESTURE_POSITIONS] ?: false,
+                primaryClickCustomPos1 = preferences[PreferencesKeys.PRIMARY_CLICK_CUSTOM_POS_1] ?: false,
+                primaryClickCustomPos2 = preferences[PreferencesKeys.PRIMARY_CLICK_CUSTOM_POS_2] ?: false,
+                primaryDoubleClickCustomPos1 = preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_CUSTOM_POS_1] ?: false,
+                primaryDoubleClickCustomPos2 = preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_CUSTOM_POS_2] ?: false,
+                primaryTripleClickCustomPos1 = preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_CUSTOM_POS_1] ?: false,
+                primaryTripleClickCustomPos2 = preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_CUSTOM_POS_2] ?: false,
+                primaryLongPressCustomPos1 = preferences[PreferencesKeys.PRIMARY_LONG_PRESS_CUSTOM_POS_1] ?: false,
+                primaryLongPressCustomPos2 = preferences[PreferencesKeys.PRIMARY_LONG_PRESS_CUSTOM_POS_2] ?: false,
+                secondaryClickCustomPos1 = preferences[PreferencesKeys.SECONDARY_CLICK_CUSTOM_POS_1] ?: false,
+                secondaryClickCustomPos2 = preferences[PreferencesKeys.SECONDARY_CLICK_CUSTOM_POS_2] ?: false,
+                secondaryDoubleClickCustomPos1 = preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_CUSTOM_POS_1] ?: false,
+                secondaryDoubleClickCustomPos2 = preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_CUSTOM_POS_2] ?: false,
+                secondaryTripleClickCustomPos1 = preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_CUSTOM_POS_1] ?: false,
+                secondaryTripleClickCustomPos2 = preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_CUSTOM_POS_2] ?: false,
+                secondaryLongPressCustomPos1 = preferences[PreferencesKeys.SECONDARY_LONG_PRESS_CUSTOM_POS_1] ?: false,
+                secondaryLongPressCustomPos2 = preferences[PreferencesKeys.SECONDARY_LONG_PRESS_CUSTOM_POS_2] ?: false,
+                primaryDoubleClickTimeoutMs = preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_TIMEOUT] ?: 300,
+                primaryTripleClickTimeoutMs = preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_TIMEOUT] ?: 350,
+                primaryLongPressDurationMs = preferences[PreferencesKeys.PRIMARY_LONG_PRESS_DURATION] ?: 500,
+                secondaryDoubleClickTimeoutMs = preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_TIMEOUT] ?: 300,
+                secondaryTripleClickTimeoutMs = preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_TIMEOUT] ?: 350,
+                secondaryLongPressDurationMs = preferences[PreferencesKeys.SECONDARY_LONG_PRESS_DURATION] ?: 500,
                 primaryAppPackage = preferences[PreferencesKeys.PRIMARY_APP_PACKAGE] ?: "",
                 secondaryAppPackage = preferences[PreferencesKeys.SECONDARY_APP_PACKAGE] ?: "",
                 deviceNameFilter = preferences[PreferencesKeys.DEVICE_NAME_FILTER] ?: "Pen",
@@ -198,8 +352,11 @@ class RemapperRepository(private val context: Context) {
                 showEdgeHandle = preferences[PreferencesKeys.SHOW_EDGE_HANDLE] ?: true,
                 airCommandScale = preferences[PreferencesKeys.AIR_COMMAND_SCALE] ?: 1.0f,
                 airCommandOpacity = preferences[PreferencesKeys.AIR_COMMAND_OPACITY] ?: 1.0f,
-                airCommandApps = preferences[PreferencesKeys.AIR_COMMAND_APPS] ?: ""
+                airCommandApps = preferences[PreferencesKeys.AIR_COMMAND_APPS] ?: "",
+                positionPresetsJson = preferences[PreferencesKeys.POSITION_PRESETS_JSON] ?: ""
             )
+            saveFastCacheSettings(context, settings)
+            settings
         }
 
     val appProfiles: Flow<List<AppProfile>> = context.remapperDataStore.data
@@ -212,11 +369,13 @@ class RemapperRepository(private val context: Context) {
         }
         .map { preferences ->
             val json = preferences[PreferencesKeys.APP_PROFILES_JSON] ?: ""
+            saveFastCacheProfiles(context, json)
             RemapperBackupManager.parseAppProfilesJson(json)
         }
 
     suspend fun saveAppProfiles(profiles: List<AppProfile>) {
         val json = RemapperBackupManager.serializeAppProfilesJson(profiles)
+        saveFastCacheProfiles(context, json)
         context.remapperDataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_PROFILES_JSON] = json
         }
@@ -232,7 +391,9 @@ class RemapperRepository(private val context: Context) {
             } else {
                 currentList.add(profile)
             }
-            preferences[PreferencesKeys.APP_PROFILES_JSON] = RemapperBackupManager.serializeAppProfilesJson(currentList)
+            val newJson = RemapperBackupManager.serializeAppProfilesJson(currentList)
+            saveFastCacheProfiles(context, newJson)
+            preferences[PreferencesKeys.APP_PROFILES_JSON] = newJson
         }
     }
 
@@ -240,11 +401,14 @@ class RemapperRepository(private val context: Context) {
         context.remapperDataStore.edit { preferences ->
             val json = preferences[PreferencesKeys.APP_PROFILES_JSON] ?: ""
             val currentList = RemapperBackupManager.parseAppProfilesJson(json).filter { it.packageName != packageName }
-            preferences[PreferencesKeys.APP_PROFILES_JSON] = RemapperBackupManager.serializeAppProfilesJson(currentList)
+            val newJson = RemapperBackupManager.serializeAppProfilesJson(currentList)
+            saveFastCacheProfiles(context, newJson)
+            preferences[PreferencesKeys.APP_PROFILES_JSON] = newJson
         }
     }
 
     suspend fun saveAllSettings(settings: RemapperSettings) {
+        saveFastCacheSettings(context, settings)
         context.remapperDataStore.edit { preferences ->
             preferences[PreferencesKeys.REMAPPER_ENABLED] = settings.remapperEnabled
             preferences[PreferencesKeys.ENGINE_MODE] = settings.engineMode.name
@@ -285,6 +449,33 @@ class RemapperRepository(private val context: Context) {
             preferences[PreferencesKeys.LONG_PRESS_DURATION_MS] = settings.longPressDurationMs
             preferences[PreferencesKeys.DOUBLE_CLICK_TIMEOUT_MS] = settings.doubleClickTimeoutMs
             preferences[PreferencesKeys.TRIPLE_CLICK_TIMEOUT_MS] = settings.tripleClickTimeoutMs
+            preferences[PreferencesKeys.USE_CUSTOM_GESTURE_TIMEOUTS] = settings.useCustomGestureTimeouts
+            preferences[PreferencesKeys.USE_CUSTOM_GESTURE_POSITIONS] = settings.useCustomGesturePositions
+
+            preferences[PreferencesKeys.PRIMARY_CLICK_CUSTOM_POS_1] = settings.primaryClickCustomPos1
+            preferences[PreferencesKeys.PRIMARY_CLICK_CUSTOM_POS_2] = settings.primaryClickCustomPos2
+            preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_CUSTOM_POS_1] = settings.primaryDoubleClickCustomPos1
+            preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_CUSTOM_POS_2] = settings.primaryDoubleClickCustomPos2
+            preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_CUSTOM_POS_1] = settings.primaryTripleClickCustomPos1
+            preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_CUSTOM_POS_2] = settings.primaryTripleClickCustomPos2
+            preferences[PreferencesKeys.PRIMARY_LONG_PRESS_CUSTOM_POS_1] = settings.primaryLongPressCustomPos1
+            preferences[PreferencesKeys.PRIMARY_LONG_PRESS_CUSTOM_POS_2] = settings.primaryLongPressCustomPos2
+
+            preferences[PreferencesKeys.SECONDARY_CLICK_CUSTOM_POS_1] = settings.secondaryClickCustomPos1
+            preferences[PreferencesKeys.SECONDARY_CLICK_CUSTOM_POS_2] = settings.secondaryClickCustomPos2
+            preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_CUSTOM_POS_1] = settings.secondaryDoubleClickCustomPos1
+            preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_CUSTOM_POS_2] = settings.secondaryDoubleClickCustomPos2
+            preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_CUSTOM_POS_1] = settings.secondaryTripleClickCustomPos1
+            preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_CUSTOM_POS_2] = settings.secondaryTripleClickCustomPos2
+            preferences[PreferencesKeys.SECONDARY_LONG_PRESS_CUSTOM_POS_1] = settings.secondaryLongPressCustomPos1
+            preferences[PreferencesKeys.SECONDARY_LONG_PRESS_CUSTOM_POS_2] = settings.secondaryLongPressCustomPos2
+
+            preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_TIMEOUT] = settings.primaryDoubleClickTimeoutMs
+            preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_TIMEOUT] = settings.primaryTripleClickTimeoutMs
+            preferences[PreferencesKeys.PRIMARY_LONG_PRESS_DURATION] = settings.primaryLongPressDurationMs
+            preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_TIMEOUT] = settings.secondaryDoubleClickTimeoutMs
+            preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_TIMEOUT] = settings.secondaryTripleClickTimeoutMs
+            preferences[PreferencesKeys.SECONDARY_LONG_PRESS_DURATION] = settings.secondaryLongPressDurationMs
             preferences[PreferencesKeys.PRIMARY_APP_PACKAGE] = settings.primaryAppPackage
             preferences[PreferencesKeys.SECONDARY_APP_PACKAGE] = settings.secondaryAppPackage
             preferences[PreferencesKeys.DEVICE_NAME_FILTER] = settings.deviceNameFilter
@@ -294,10 +485,17 @@ class RemapperRepository(private val context: Context) {
             preferences[PreferencesKeys.AIR_COMMAND_SCALE] = settings.airCommandScale
             preferences[PreferencesKeys.AIR_COMMAND_OPACITY] = settings.airCommandOpacity
             preferences[PreferencesKeys.AIR_COMMAND_APPS] = settings.airCommandApps
+            preferences[PreferencesKeys.POSITION_PRESETS_JSON] = settings.positionPresetsJson
         }
     }
 
     suspend fun setRemapperEnabled(enabled: Boolean) {
+        try {
+            val prefs = context.getSharedPreferences("remapper_fast_cache", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("remapper_enabled", enabled).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         context.remapperDataStore.edit { preferences ->
             preferences[PreferencesKeys.REMAPPER_ENABLED] = enabled
         }
@@ -306,6 +504,12 @@ class RemapperRepository(private val context: Context) {
     suspend fun setAirCommandApps(apps: String) {
         context.remapperDataStore.edit { preferences ->
             preferences[PreferencesKeys.AIR_COMMAND_APPS] = apps
+        }
+    }
+
+    suspend fun setPositionPresetsJson(json: String) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.POSITION_PRESETS_JSON] = json
         }
     }
 
@@ -483,6 +687,54 @@ class RemapperRepository(private val context: Context) {
         }
     }
 
+    suspend fun setUseCustomGestureTimeouts(useCustom: Boolean) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_CUSTOM_GESTURE_TIMEOUTS] = useCustom
+        }
+    }
+
+    suspend fun setUseCustomGesturePositions(useCustom: Boolean) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_CUSTOM_GESTURE_POSITIONS] = useCustom
+        }
+    }
+
+    suspend fun setPrimaryDoubleClickTimeoutMs(timeoutMs: Int) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_TIMEOUT] = timeoutMs
+        }
+    }
+
+    suspend fun setPrimaryTripleClickTimeoutMs(timeoutMs: Int) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_TIMEOUT] = timeoutMs
+        }
+    }
+
+    suspend fun setPrimaryLongPressDurationMs(durationMs: Int) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRIMARY_LONG_PRESS_DURATION] = durationMs
+        }
+    }
+
+    suspend fun setSecondaryDoubleClickTimeoutMs(timeoutMs: Int) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_TIMEOUT] = timeoutMs
+        }
+    }
+
+    suspend fun setSecondaryTripleClickTimeoutMs(timeoutMs: Int) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_TIMEOUT] = timeoutMs
+        }
+    }
+
+    suspend fun setSecondaryLongPressDurationMs(durationMs: Int) {
+        context.remapperDataStore.edit { preferences ->
+            preferences[PreferencesKeys.SECONDARY_LONG_PRESS_DURATION] = durationMs
+        }
+    }
+
     suspend fun setPrimaryAppPackage(appPackage: String) {
         context.remapperDataStore.edit { preferences ->
             preferences[PreferencesKeys.PRIMARY_APP_PACKAGE] = appPackage
@@ -546,6 +798,30 @@ class RemapperRepository(private val context: Context) {
     suspend fun setSecondaryLongPressShortcut(shortcut: String) {
         context.remapperDataStore.edit { preferences ->
             preferences[PreferencesKeys.SECONDARY_LONG_PRESS_SHORTCUT] = shortcut
+        }
+    }
+
+    suspend fun setSlotCustomPos(slot: ActionTargetSlot, enabled: Boolean) {
+        context.remapperDataStore.edit { preferences ->
+            when (slot) {
+                ActionTargetSlot.PRIMARY_CLICK_1 -> preferences[PreferencesKeys.PRIMARY_CLICK_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.PRIMARY_CLICK_2 -> preferences[PreferencesKeys.PRIMARY_CLICK_CUSTOM_POS_2] = enabled
+                ActionTargetSlot.PRIMARY_DOUBLE_CLICK_1 -> preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.PRIMARY_DOUBLE_CLICK_2 -> preferences[PreferencesKeys.PRIMARY_DOUBLE_CLICK_CUSTOM_POS_2] = enabled
+                ActionTargetSlot.PRIMARY_TRIPLE_CLICK_1 -> preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.PRIMARY_TRIPLE_CLICK_2 -> preferences[PreferencesKeys.PRIMARY_TRIPLE_CLICK_CUSTOM_POS_2] = enabled
+                ActionTargetSlot.PRIMARY_LONG_PRESS_1 -> preferences[PreferencesKeys.PRIMARY_LONG_PRESS_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.PRIMARY_LONG_PRESS_2 -> preferences[PreferencesKeys.PRIMARY_LONG_PRESS_CUSTOM_POS_2] = enabled
+
+                ActionTargetSlot.SECONDARY_CLICK_1 -> preferences[PreferencesKeys.SECONDARY_CLICK_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.SECONDARY_CLICK_2 -> preferences[PreferencesKeys.SECONDARY_CLICK_CUSTOM_POS_2] = enabled
+                ActionTargetSlot.SECONDARY_DOUBLE_CLICK_1 -> preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.SECONDARY_DOUBLE_CLICK_2 -> preferences[PreferencesKeys.SECONDARY_DOUBLE_CLICK_CUSTOM_POS_2] = enabled
+                ActionTargetSlot.SECONDARY_TRIPLE_CLICK_1 -> preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.SECONDARY_TRIPLE_CLICK_2 -> preferences[PreferencesKeys.SECONDARY_TRIPLE_CLICK_CUSTOM_POS_2] = enabled
+                ActionTargetSlot.SECONDARY_LONG_PRESS_1 -> preferences[PreferencesKeys.SECONDARY_LONG_PRESS_CUSTOM_POS_1] = enabled
+                ActionTargetSlot.SECONDARY_LONG_PRESS_2 -> preferences[PreferencesKeys.SECONDARY_LONG_PRESS_CUSTOM_POS_2] = enabled
+            }
         }
     }
 }

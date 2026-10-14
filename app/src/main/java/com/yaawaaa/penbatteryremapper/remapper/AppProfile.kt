@@ -45,5 +45,22 @@ data class AppProfile(
     val secondaryLongPressAppPackage2: String = "",
 
     val primaryAppPackage: String = "",
-    val secondaryAppPackage: String = ""
+    val secondaryAppPackage: String = "",
+    val useCustomGesturePositions: Boolean = false,
+    val primaryClickCustomPos1: Boolean = false,
+    val primaryClickCustomPos2: Boolean = false,
+    val primaryDoubleClickCustomPos1: Boolean = false,
+    val primaryDoubleClickCustomPos2: Boolean = false,
+    val primaryTripleClickCustomPos1: Boolean = false,
+    val primaryTripleClickCustomPos2: Boolean = false,
+    val primaryLongPressCustomPos1: Boolean = false,
+    val primaryLongPressCustomPos2: Boolean = false,
+    val secondaryClickCustomPos1: Boolean = false,
+    val secondaryClickCustomPos2: Boolean = false,
+    val secondaryDoubleClickCustomPos1: Boolean = false,
+    val secondaryDoubleClickCustomPos2: Boolean = false,
+    val secondaryTripleClickCustomPos1: Boolean = false,
+    val secondaryTripleClickCustomPos2: Boolean = false,
+    val secondaryLongPressCustomPos1: Boolean = false,
+    val secondaryLongPressCustomPos2: Boolean = false
 )

@@ -41,18 +41,31 @@ object RootHelper {
     }
 
     suspend fun protectProcessFromBackgroundKill(packageName: String = "com.yaawaaa.penbatteryremapper"): Boolean = withContext(Dispatchers.IO) {
-        val cmd1 = "dumpsys deviceidle whitelist +$packageName"
-        val cmd2 = "cmd appops set $packageName RUN_IN_BACKGROUND allow"
-        val cmd3 = "cmd appops set $packageName RUN_ANY_IN_BACKGROUND allow"
-        val cmd4 = "pm grant $packageName android.permission.INJECT_EVENTS"
+        val pid = Process.myPid()
+        val cmds = listOf(
+            "dumpsys deviceidle whitelist +$packageName",
+            "cmd deviceidle whitelist +$packageName",
+            "am set-standby-bucket $packageName active",
+            "cmd appops set $packageName RUN_IN_BACKGROUND allow",
+            "cmd appops set $packageName RUN_ANY_IN_BACKGROUND allow",
+            "pm grant $packageName android.permission.INJECT_EVENTS",
+            "echo -1000 > /proc/$pid/oom_score_adj",
+            "echo -17 > /proc/$pid/oom_adj",
+            "cmd appops set $packageName SHOW_WHEN_LOCKED allow",
+            "cmd appops set $packageName 10020 allow",
+            "cmd appops set $packageName 10021 allow",
+            "cmd appops set $packageName SYSTEM_ALERT_WINDOW allow",
+            "cmd appops set $packageName USE_FULL_SCREEN_INTENT allow",
+            "pm grant $packageName android.permission.SYSTEM_ALERT_WINDOW",
+            "pm grant $packageName android.permission.USE_FULL_SCREEN_INTENT"
+        )
 
         try {
             val process = Runtime.getRuntime().exec("su")
             val os = DataOutputStream(process.outputStream)
-            os.writeBytes("$cmd1\n")
-            os.writeBytes("$cmd2\n")
-            os.writeBytes("$cmd3\n")
-            os.writeBytes("$cmd4\n")
+            for (cmd in cmds) {
+                os.writeBytes("$cmd\n")
+            }
             os.writeBytes("exit\n")
             os.flush()
             val exitCode = process.waitFor()
@@ -65,8 +78,14 @@ object RootHelper {
     suspend fun protectCurrentProcessFromLMK(): Boolean = withContext(Dispatchers.IO) {
         val pid = Process.myPid()
         try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "echo -1000 > /proc/$pid/oom_score_adj"))
-            process.waitFor() == 0
+            val process = Runtime.getRuntime().exec("su")
+            val os = DataOutputStream(process.outputStream)
+            os.writeBytes("echo -1000 > /proc/$pid/oom_score_adj\n")
+            os.writeBytes("echo -17 > /proc/$pid/oom_adj\n")
+            os.writeBytes("exit\n")
+            os.flush()
+            val exitCode = process.waitFor()
+            exitCode == 0
         } catch (e: Exception) {
             false
         }

@@ -26,6 +26,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.yaawaaa.penbatteryremapper.remapper.ActionExecutor
+import com.yaawaaa.penbatteryremapper.remapper.AppIconCache
 import com.yaawaaa.penbatteryremapper.remapper.RemapAction
 import com.yaawaaa.penbatteryremapper.remapper.RemapperRepository
 import com.yaawaaa.penbatteryremapper.remapper.RemapperSettings
@@ -456,8 +457,19 @@ class AirCommandOverlayService : Service() {
         }
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        appIconCache.clear()
+        AppIconCache.clear()
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            System.gc()
+        }
+    }
+
     override fun onDestroy() {
         isServiceRunning = false
+        appIconCache.clear()
+        AppIconCache.clear()
         if (rootFrameLayout != null && isViewAttached) {
             try {
                 windowManager?.removeView(rootFrameLayout)

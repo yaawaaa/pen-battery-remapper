@@ -37,12 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
 import com.yaawaaa.penbatteryremapper.remapper.AppInfo
+import com.yaawaaa.penbatteryremapper.remapper.rememberAppIcon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -157,24 +156,13 @@ fun AppPickerDialog(
                                     .padding(vertical = 8.dp, horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (app.icon != null) {
-                                    val bitmap = remember(app.packageName) {
-                                        try { app.icon.toBitmap().asImageBitmap() } catch (e: Exception) { null }
-                                    }
-                                    if (bitmap != null) {
-                                        Image(
-                                            bitmap = bitmap,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(36.dp)
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Default.Android,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(36.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
+                                val appBitmap = rememberAppIcon(app.packageName)
+                                if (appBitmap != null) {
+                                    Image(
+                                        bitmap = appBitmap,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(36.dp)
+                                    )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Android,

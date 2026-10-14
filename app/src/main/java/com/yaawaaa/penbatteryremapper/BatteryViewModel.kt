@@ -7,7 +7,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileInputStream
 
 sealed class BatteryState {
     object Loading : BatteryState()
@@ -42,6 +46,9 @@ sealed class ChargingStatus {
 
 class BatteryViewModel(application: Application) : AndroidViewModel(application) {
     private val batteryFilePath = "/sys/class/power_supply/idt/reverse_pen_soc"
+    private val sysfsFile = File(batteryFilePath)
+    private val readBuffer = ByteArray(16)
+
     private val repository: BatteryRepository
     private val remapperRepo = RemapperRepository(application)
 
@@ -64,6 +71,9 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
     private val _isActivelyCharging = MutableStateFlow(false)
     val isActivelyCharging: StateFlow<Boolean> = _isActivelyCharging.asStateFlow()
 
+    private val _isIgnoringBatteryOptimizations = MutableStateFlow(true)
+    val isIgnoringBatteryOptimizations: StateFlow<Boolean> = _isIgnoringBatteryOptimizations.asStateFlow()
+
     val isLoggingEnabled: StateFlow<Boolean>
     val batteryLogs: StateFlow<List<BatteryLog>>
 
@@ -79,7 +89,39 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
         )
 
         checkServiceState()
+        checkBatteryOptimizationStatus()
         startPolling()
+    }
+
+    fun checkBatteryOptimizationStatus(context: Context = getApplication()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            val isIgnoring = pm?.isIgnoringBatteryOptimizations(context.packageName) ?: true
+            _isIgnoringBatteryOptimizations.value = isIgnoring
+        } else {
+            _isIgnoringBatteryOptimizations.value = true
+        }
+    }
+
+    fun requestIgnoreBatteryOptimizations(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                } catch (e2: Exception) {
+                    e2.printStackTrace()
+                }
+            }
+        }
     }
 
     fun toggleLogging(enabled: Boolean) {
@@ -139,6 +181,7 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
             _batteryState.value = BatteryState.Loading
             readBatteryAndCharging()
             checkServiceState()
+            checkBatteryOptimizationStatus()
         }
     }
 
@@ -166,47 +209,63 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
         _isServiceRunning.value = running
     }
 
+    private fun readSysfsSoc(): Int? {
+        if (!sysfsFile.exists() || !sysfsFile.canRead()) return null
+        return try {
+            FileInputStream(sysfsFile).use { fis ->
+                val bytesRead = fis.read(readBuffer)
+                if (bytesRead <= 0) return null
+                var value = 0
+                var hasDigits = false
+                for (i in 0 until bytesRead) {
+                    val b = readBuffer[i]
+                    if (b in '0'.code.toByte()..'9'.code.toByte()) {
+                        value = value * 10 + (b - '0'.code.toByte())
+                        hasDigits = true
+                    } else if (hasDigits) {
+                        break
+                    }
+                }
+                if (hasDigits) value else null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private suspend fun readBatteryAndCharging() {
         // Read battery percentage from sysfs and determine connection / charging status
         try {
-            val file = File(batteryFilePath)
-            if (file.exists() && file.canRead()) {
-                val content = file.readText().trim()
-                val level = content.toIntOrNull()
-                if (level != null && level != 255) {
-                    val isConnected = (level != 50)
-                    _batteryState.value = BatteryState.Success(
-                        level = level,
-                        isConnected = isConnected,
-                        lastUpdated = System.currentTimeMillis()
-                    )
+            val level = readSysfsSoc()
+            if (level != null && level != 255) {
+                val isConnected = (level != 50)
+                _batteryState.value = BatteryState.Success(
+                    level = level,
+                    isConnected = isConnected,
+                    lastUpdated = System.currentTimeMillis()
+                )
 
-                    // Active charging trend detection: connected AND currentLevel > previousLevel
-                    val prev = previousLevel
-                    _isActivelyCharging.value = isConnected && (prev != null) && (level > prev)
-                    previousLevel = level
+                // Active charging trend detection: connected AND currentLevel > previousLevel
+                val prev = previousLevel
+                _isActivelyCharging.value = isConnected && (prev != null) && (level > prev)
+                previousLevel = level
 
-                    // Log to Room DB (if logging enabled)
-                    repository.insertLog(level = level, isConnected = isConnected)
+                // Log to Room DB (if logging enabled)
+                repository.insertLog(level = level, isConnected = isConnected)
 
-                    _chargingStatus.value = if (isConnected) {
-                        ChargingStatus.DockedAndCharging(level)
-                    } else {
-                        ChargingStatus.Disconnected
-                    }
-                } else if (level == 255) {
-                    // Ignore transient 255 spike
+                _chargingStatus.value = if (isConnected) {
+                    ChargingStatus.DockedAndCharging(level)
                 } else {
-                    _batteryState.value = BatteryState.Error("Invalid battery format: $content")
-                    _chargingStatus.value = ChargingStatus.Disconnected
-                    _isActivelyCharging.value = false
+                    ChargingStatus.Disconnected
                 }
-            } else if (!file.exists()) {
+            } else if (level == 255) {
+                // Ignore transient 255 spike
+            } else if (!sysfsFile.exists()) {
                 _batteryState.value = BatteryState.Error("File not found: $batteryFilePath")
                 _chargingStatus.value = ChargingStatus.Disconnected
                 _isActivelyCharging.value = false
             } else {
-                _batteryState.value = BatteryState.Error("Permission denied: $batteryFilePath")
+                _batteryState.value = BatteryState.Error("Permission denied or unreadable: $batteryFilePath")
                 _chargingStatus.value = ChargingStatus.Disconnected
                 _isActivelyCharging.value = false
             }

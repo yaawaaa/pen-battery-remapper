@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PowerOff
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -88,8 +89,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BatteryScreen(viewModel: BatteryViewModel = viewModel()) {
-    var selectedTab by remember { mutableStateOf(0) }
+fun BatteryScreen(
+    initialTab: Int = 0,
+    viewModel: BatteryViewModel = viewModel()
+) {
+    var selectedTab by remember(initialTab) { mutableStateOf(initialTab) }
 
     Scaffold(
         bottomBar = {
@@ -143,6 +147,7 @@ fun BatteryDashboardContent(viewModel: BatteryViewModel = viewModel()) {
     val isActivelyCharging by viewModel.isActivelyCharging.collectAsState()
     val isLoggingEnabled by viewModel.isLoggingEnabled.collectAsState()
     val isTileAdded by viewModel.isTileAdded.collectAsState()
+    val isIgnoringBatteryOptimizations by viewModel.isIgnoringBatteryOptimizations.collectAsState()
     val context = LocalContext.current
 
     Scaffold(
@@ -195,6 +200,12 @@ fun BatteryDashboardContent(viewModel: BatteryViewModel = viewModel()) {
                 isTileAdded = isTileAdded,
                 onRequestAddTile = { viewModel.requestAddTile(context) }
             )
+
+            if (!isIgnoringBatteryOptimizations) {
+                BatteryOptimizationCard(
+                    onRequestExemption = { viewModel.requestIgnoreBatteryOptimizations(context) }
+                )
+            }
 
             // 3. Charging Status / Fallback Section
             ChargingStatusSection(
@@ -316,6 +327,58 @@ fun QuickSettingsTileCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Add Tile", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun BatteryOptimizationCard(
+    onRequestExemption: () -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Battery Optimization Active",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = "OEM background managers may stop Pen Monitor and Remapper services under memory pressure.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onRequestExemption,
+                modifier = Modifier.align(Alignment.End),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Disable Optimization")
             }
         }
     }

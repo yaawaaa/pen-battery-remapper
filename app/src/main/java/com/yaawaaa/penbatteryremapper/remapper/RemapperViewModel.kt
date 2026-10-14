@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.yaawaaa.penbatteryremapper.service.PenRemapperAccessibilityService
+import com.yaawaaa.penbatteryremapper.ui.ActionTargetSlot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -108,7 +109,7 @@ class RemapperViewModel(application: Application) : AndroidViewModel(application
                 AppInfo(
                     packageName = pkgName,
                     appName = resolveInfo.loadLabel(pm).toString(),
-                    icon = resolveInfo.loadIcon(pm),
+                    icon = null,
                     isSystemApp = isSystem
                 )
             }.distinctBy { it.packageName }.sortedBy { it.appName.lowercase() }
@@ -309,15 +310,63 @@ class RemapperViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setPrimaryAppPackage(pkg: String) {
+    fun setUseCustomGestureTimeouts(useCustom: Boolean) {
         viewModelScope.launch {
-            repository.setPrimaryAppPackage(pkg)
+            repository.setUseCustomGestureTimeouts(useCustom)
         }
     }
 
-    fun setSecondaryAppPackage(pkg: String) {
+    fun setUseCustomGesturePositions(useCustom: Boolean) {
         viewModelScope.launch {
-            repository.setSecondaryAppPackage(pkg)
+            repository.setUseCustomGesturePositions(useCustom)
+        }
+    }
+
+    fun setSlotCustomPos(slot: ActionTargetSlot, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setSlotCustomPos(slot, enabled)
+        }
+    }
+
+    fun setPositionPresetsJson(json: String) {
+        viewModelScope.launch {
+            repository.setPositionPresetsJson(json)
+        }
+    }
+
+    fun setPrimaryDoubleClickTimeoutMs(timeoutMs: Int) {
+        viewModelScope.launch {
+            repository.setPrimaryDoubleClickTimeoutMs(timeoutMs)
+        }
+    }
+
+    fun setPrimaryTripleClickTimeoutMs(timeoutMs: Int) {
+        viewModelScope.launch {
+            repository.setPrimaryTripleClickTimeoutMs(timeoutMs)
+        }
+    }
+
+    fun setPrimaryLongPressDurationMs(durationMs: Int) {
+        viewModelScope.launch {
+            repository.setPrimaryLongPressDurationMs(durationMs)
+        }
+    }
+
+    fun setSecondaryDoubleClickTimeoutMs(timeoutMs: Int) {
+        viewModelScope.launch {
+            repository.setSecondaryDoubleClickTimeoutMs(timeoutMs)
+        }
+    }
+
+    fun setSecondaryTripleClickTimeoutMs(timeoutMs: Int) {
+        viewModelScope.launch {
+            repository.setSecondaryTripleClickTimeoutMs(timeoutMs)
+        }
+    }
+
+    fun setSecondaryLongPressDurationMs(durationMs: Int) {
+        viewModelScope.launch {
+            repository.setSecondaryLongPressDurationMs(durationMs)
         }
     }
 

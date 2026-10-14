@@ -3,6 +3,7 @@ package com.yaawaaa.penbatteryremapper
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.service.quicksettings.Tile
@@ -10,6 +11,8 @@ import android.service.quicksettings.TileService
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.yaawaaa.penbatteryremapper.data.AppDatabase
+import com.yaawaaa.penbatteryremapper.data.BatteryRepository
 import com.yaawaaa.penbatteryremapper.remapper.RemapperRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,28 +50,71 @@ class PenBatteryTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        updateTileState()
+
+        // Start or ensure PenMonitorService is running in background to monitor pen connectivity
+        try {
+            val serviceIntent = Intent(applicationContext, PenMonitorService::class.java).apply {
+                action = "ACTION_REFRESH"
+            }
+            ContextCompat.startForegroundService(applicationContext, serviceIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting PenMonitorService from QS tile", e)
+        }
+
+        // Trigger immediate battery poll on Dispatchers.IO and update tile
+        CoroutineScope(Dispatchers.IO).launch {
+            val soc = readBatteryLevel()
+
+            // Trigger poll/logging via BatteryRepository if valid reading
+            if (soc != null && soc != 50 && soc != 255) {
+                try {
+                    val db = AppDatabase.getDatabase(applicationContext)
+                    val repository = BatteryRepository(db.batteryLogDao(), applicationContext)
+                    repository.insertLog(level = soc, isConnected = true)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error inserting battery log on tile click", e)
+                }
+            }
+
+            val tile = qsTile ?: return@launch
+            tile.state = Tile.STATE_ACTIVE
+            if (soc != null && soc != 50 && soc != 255) {
+                tile.label = "Pen: $soc%"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    tile.subtitle = "$soc%"
+                }
+            } else {
+                tile.label = "Pen Off"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    tile.subtitle = "Disconnected"
+                }
+            }
+            tile.updateTile()
+        }
+
         postNotification()
     }
 
     fun updateTileState() {
-        val tile = qsTile ?: return
-        val soc = readBatteryLevel()
+        CoroutineScope(Dispatchers.IO).launch {
+            val tile = qsTile ?: return@launch
+            val soc = readBatteryLevel()
 
-        if (soc != null && soc != 50 && soc != 255) {
-            tile.state = Tile.STATE_ACTIVE
-            tile.label = "Pen $soc%"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "$soc%"
+            if (soc != null && soc != 50 && soc != 255) {
+                tile.state = Tile.STATE_ACTIVE
+                tile.label = "Pen: $soc%"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    tile.subtitle = "$soc%"
+                }
+            } else {
+                tile.state = Tile.STATE_INACTIVE
+                tile.label = "Pen Off"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    tile.subtitle = "Disconnected"
+                }
             }
-        } else {
-            tile.state = Tile.STATE_INACTIVE
-            tile.label = "Pen Off"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "Disconnected"
-            }
+            tile.updateTile()
         }
-        tile.updateTile()
     }
 
     private fun postNotification() {

@@ -32,11 +32,13 @@ class BatteryRepository(
         if (!_isLoggingEnabled.value) return
         val log = BatteryLog(level = level, isConnected = isConnected)
         batteryLogDao.insertLog(log)
+        batteryLogDao.pruneOldLogs(300)
     }
 
     suspend fun insertLog(log: BatteryLog) {
         if (!_isLoggingEnabled.value) return
         batteryLogDao.insertLog(log)
+        batteryLogDao.pruneOldLogs(300)
     }
 
     suspend fun getLatestLog(): BatteryLog? {

@@ -1,15 +1,14 @@
 package com.yaawaaa.penbatteryremapper.ui
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
+import com.yaawaaa.penbatteryremapper.remapper.rememberAppIcon
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -152,21 +151,6 @@ data class AirCommandItem(
     }
 }
 
-fun Drawable.toImageBitmap(): ImageBitmap {
-    if (this is BitmapDrawable && this.bitmap != null) {
-        return this.bitmap.asImageBitmap()
-    }
-    val bitmap = if (intrinsicWidth <= 0 || intrinsicHeight <= 0) {
-        Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-    } else {
-        Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
-    }
-    val canvas = Canvas(bitmap)
-    setBounds(0, 0, canvas.width, canvas.height)
-    draw(canvas)
-    return bitmap.asImageBitmap()
-}
-
 @Composable
 fun AirCommandItemsEditorDialog(
     currentJson: String,
@@ -242,6 +226,9 @@ fun AirCommandItemsEditorDialog(
                             val appInfo = if (item.type == "APP" || item.actionName == RemapAction.LAUNCH_APP.name) {
                                 installedApps.find { it.packageName == effectivePkg }
                             } else null
+                            val appBitmap = if (item.type == "APP" || item.actionName == RemapAction.LAUNCH_APP.name) {
+                                rememberAppIcon(effectivePkg)
+                            } else null
 
                             OutlinedCard(
                                 modifier = Modifier.fillMaxWidth(),
@@ -262,9 +249,9 @@ fun AirCommandItemsEditorDialog(
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (appInfo?.icon != null) {
+                                        if (appBitmap != null) {
                                             Image(
-                                                bitmap = appInfo.icon.toImageBitmap(),
+                                                bitmap = appBitmap,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -481,6 +468,7 @@ fun AddAirCommandItemDialog(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         val selectedAppInfo = installedApps.find { it.packageName == selectedAppPackage }
+                        val appBitmap = rememberAppIcon(selectedAppPackage)
 
                         OutlinedCard(
                             modifier = Modifier
@@ -496,16 +484,16 @@ fun AddAirCommandItemDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (selectedAppInfo?.icon != null) {
+                                    if (appBitmap != null) {
                                         Image(
-                                            bitmap = selectedAppInfo.icon.toImageBitmap(),
+                                            bitmap = appBitmap,
                                             contentDescription = null,
                                             modifier = Modifier.size(24.dp)
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
                                     }
                                     Text(
-                                        text = selectedAppInfo?.appName ?: "Choose App...",
+                                        text = selectedAppInfo?.appName ?: if (selectedAppPackage.isNotBlank()) selectedAppPackage else "Choose App...",
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -525,7 +513,7 @@ fun AddAirCommandItemDialog(
                         OutlinedTextField(
                             value = payloadText,
                             onValueChange = { payloadText = it },
-                            placeholder = { Text("e.g. CTRL+Z or ALT+TAB") },
+                            placeholder = { Text("e.g. A, 1, Backspace, Space, Enter, or Ctrl+Z") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true
@@ -544,6 +532,24 @@ fun AddAirCommandItemDialog(
                             value = payloadText,
                             onValueChange = { payloadText = it },
                             placeholder = { Text("e.g. CTRL+E or E") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+                    }
+
+                    RemapAction.LOCKSCREEN_AWAKE, RemapAction.TRIGGER_EXTERNAL_APP -> {
+                        Text(
+                            text = "Target Package / Action (optional)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        OutlinedTextField(
+                            value = payloadText,
+                            onValueChange = { payloadText = it },
+                            placeholder = { Text("e.g. com.yaawaaa.lockscreenawake/action.TOGGLE") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true
@@ -577,7 +583,7 @@ fun AddAirCommandItemDialog(
                 onClick = {
                     val finalPayload = when (selectedAction) {
                         RemapAction.LAUNCH_APP -> selectedAppPackage
-                        RemapAction.CUSTOM_KEYBOARD_SHORTCUT, RemapAction.TOGGLE_PEN_ERASER -> payloadText
+                        RemapAction.CUSTOM_KEYBOARD_SHORTCUT, RemapAction.TOGGLE_PEN_ERASER, RemapAction.LOCKSCREEN_AWAKE, RemapAction.TRIGGER_EXTERNAL_APP -> payloadText
                         else -> ""
                     }
                     val type = if (selectedAction == RemapAction.LAUNCH_APP) "APP" else "ACTION"
@@ -751,6 +757,7 @@ fun ImportBackupDialog(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CustomKeyboardShortcutDialog(
     initialShortcut: String,
@@ -796,7 +803,7 @@ fun CustomKeyboardShortcutDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Select modifiers and target key to simulate a keyboard shortcut.",
+                    text = "Select modifiers and target key to simulate a keyboard shortcut (e.g. A, 1, Backspace, Space, Enter, or Ctrl+Z).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -858,74 +865,85 @@ fun CustomKeyboardShortcutDialog(
                 }
 
                 Text(
-                    text = "Quick Presets",
+                    text = "Arrow Keys",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
 
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            ctrlChecked = true; altChecked = false; shiftChecked = false; selectedKey = "A"
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(4.dp)
-                    ) {
-                        Text("Select All", fontSize = 11.sp)
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            ctrlChecked = true; altChecked = false; shiftChecked = false; selectedKey = "C"
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(4.dp)
-                    ) {
-                        Text("Copy", fontSize = 11.sp)
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            ctrlChecked = true; altChecked = false; shiftChecked = false; selectedKey = "V"
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(4.dp)
-                    ) {
-                        Text("Paste", fontSize = 11.sp)
+                    val arrowKeys = listOf("Up" to "UP", "Down" to "DOWN", "Left" to "LEFT", "Right" to "RIGHT")
+                    arrowKeys.forEach { (label, keyToken) ->
+                        FilterChip(
+                            selected = selectedKey.equals(keyToken, ignoreCase = true),
+                            onClick = { selectedKey = keyToken },
+                            label = { Text(label, fontSize = 12.sp) }
+                        )
                     }
                 }
 
-                Row(
+                Text(
+                    text = "Special / Navigation Keys",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            ctrlChecked = true; altChecked = false; shiftChecked = false; selectedKey = "Z"
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(4.dp)
-                    ) {
-                        Text("Undo", fontSize = 11.sp)
+                    val specialKeys = listOf(
+                        "Enter" to "ENTER",
+                        "Esc" to "ESC",
+                        "Tab" to "TAB",
+                        "Space" to "SPACE",
+                        "Backspace" to "BACKSPACE",
+                        "Delete" to "DELETE",
+                        "Page Up" to "PAGE_UP",
+                        "Page Down" to "PAGE_DOWN"
+                    )
+                    specialKeys.forEach { (label, keyToken) ->
+                        FilterChip(
+                            selected = selectedKey.equals(keyToken, ignoreCase = true),
+                            onClick = { selectedKey = keyToken },
+                            label = { Text(label, fontSize = 12.sp) }
+                        )
                     }
-                    OutlinedButton(
-                        onClick = {
-                            ctrlChecked = true; altChecked = false; shiftChecked = false; selectedKey = "Y"
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(4.dp)
-                    ) {
-                        Text("Redo", fontSize = 11.sp)
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            ctrlChecked = false; altChecked = true; shiftChecked = false; selectedKey = "TAB"
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(4.dp)
-                    ) {
-                        Text("Alt+Tab (Apps)", fontSize = 11.sp)
+                }
+
+                Text(
+                    text = "Common Shortcut Combos",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val commonCombos = listOf(
+                        Triple("Ctrl+C (Copy)", "C", true),
+                        Triple("Ctrl+V (Paste)", "V", true),
+                        Triple("Ctrl+Z (Undo)", "Z", true),
+                        Triple("Ctrl+A (Select All)", "A", true)
+                    )
+                    commonCombos.forEach { (label, keyToken, isCtrl) ->
+                        val isComboSelected = ctrlChecked && !altChecked && !shiftChecked && selectedKey.equals(keyToken, ignoreCase = true)
+                        FilterChip(
+                            selected = isComboSelected,
+                            onClick = {
+                                ctrlChecked = isCtrl
+                                altChecked = false
+                                shiftChecked = false
+                                selectedKey = keyToken
+                            },
+                            label = { Text(label, fontSize = 12.sp) }
+                        )
                     }
                 }
 
@@ -938,7 +956,8 @@ fun CustomKeyboardShortcutDialog(
                 OutlinedTextField(
                     value = selectedKey,
                     onValueChange = { selectedKey = it.uppercase() },
-                    label = { Text("Key (e.g. C, V, Z, A, ENTER, SPACE, TAB, ESCAPE)") },
+                    label = { Text("Key / Character") },
+                    placeholder = { Text("e.g. A, 1, Backspace, Space, Enter, or Ctrl+Z") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)

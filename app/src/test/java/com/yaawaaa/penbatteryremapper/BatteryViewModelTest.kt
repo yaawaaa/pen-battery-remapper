@@ -30,6 +30,15 @@ class BatteryViewModelTest {
         override suspend fun clearLogs() {
             logs.clear()
         }
+
+        override suspend fun pruneOldLogs(maxEntries: Int) {
+            if (logs.size > maxEntries) {
+                val toRemove = logs.size - maxEntries
+                repeat(toRemove) {
+                    if (logs.isNotEmpty()) logs.removeAt(0)
+                }
+            }
+        }
     }
 
     @Test

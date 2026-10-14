@@ -36,7 +36,12 @@ enum class RemapAction(val displayName: String, val description: String) {
     SCREEN_DOUBLE_TAP_RIGHT("Screen Double Tap (Right)", "Double tap right side of screen"),
     SCREEN_LONG_PRESS_LEFT("Screen Long Press (Left)", "Long press left side of screen"),
     SCREEN_LONG_PRESS_RIGHT("Screen Long Press (Right)", "Long press right side of screen"),
-    AIR_COMMAND("Air Command", "Toggle or trigger Air Command overlay toolbar");
+    SCREEN_TAP("Screen Tap", "Single tap screen at target location"),
+    SCREEN_TAP_LEFT("Screen Tap (Left)", "Single tap left side of screen"),
+    SCREEN_TAP_RIGHT("Screen Tap (Right)", "Single tap right side of screen"),
+    AIR_COMMAND("Air Command", "Toggle or trigger Air Command overlay toolbar"),
+    LOCKSCREEN_AWAKE("Lockscreen Awake", "Trigger Lockscreen Awake background action via explicit Intent"),
+    TRIGGER_EXTERNAL_APP("Trigger External App", "Trigger external app background action via explicit Intent");
 
     companion object {
         fun fromNameOrDefault(name: String?, default: RemapAction = PASSTHROUGH): RemapAction {
@@ -65,54 +70,6 @@ enum class EngineMode(val displayName: String) {
         }
     }
 }
-
-data class RemapperSettings(
-    val remapperEnabled: Boolean = false,
-    val engineMode: EngineMode = EngineMode.ACCESSIBILITY,
-    val primaryClickAction: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryClickShortcut: String = "",
-    val primaryDoubleClickAction: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryDoubleClickShortcut: String = "",
-    val primaryTripleClickAction: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryTripleClickShortcut: String = "",
-    val primaryLongPressAction: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryLongPressShortcut: String = "",
-    val primaryClickAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryClickAppPackage2: String = "",
-    val primaryDoubleClickAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryDoubleClickAppPackage2: String = "",
-    val primaryTripleClickAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryTripleClickAppPackage2: String = "",
-    val primaryLongPressAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val primaryLongPressAppPackage2: String = "",
-    val secondaryClickAction: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryClickShortcut: String = "",
-    val secondaryDoubleClickAction: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryDoubleClickShortcut: String = "",
-    val secondaryTripleClickAction: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryTripleClickShortcut: String = "",
-    val secondaryLongPressAction: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryLongPressShortcut: String = "",
-    val secondaryClickAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryClickAppPackage2: String = "",
-    val secondaryDoubleClickAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryDoubleClickAppPackage2: String = "",
-    val secondaryTripleClickAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryTripleClickAppPackage2: String = "",
-    val secondaryLongPressAction2: RemapAction = RemapAction.PASSTHROUGH,
-    val secondaryLongPressAppPackage2: String = "",
-    val longPressDurationMs: Int = 500,
-    val doubleClickTimeoutMs: Int = 300,
-    val tripleClickTimeoutMs: Int = 400,
-    val primaryAppPackage: String = "",
-    val secondaryAppPackage: String = "",
-    val deviceNameFilter: String = "Pen",
-    val airCommandEnabled: Boolean = false,
-    val showEdgeHandle: Boolean = true,
-    val airCommandScale: Float = 1.0f,
-    val airCommandOpacity: Float = 1.0f,
-    val airCommandApps: String = ""
-)
 
 data class KeyEventInfo(
     val keyCode: Int,

@@ -10,9 +10,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="com.yaawaaa.lockscreenawake.permission.CONTROL_AWAKE" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <queries>
+        <package android:name="com.yaawaaa.lockscreenawake" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -27,13 +29,27 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Test2">
+        android:theme="@style/Theme.Test2"
+        android:resizeableActivity="true"
+        android:largeHeap="false"
+        android:hardwareAccelerated="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Test2"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:showOnLockScreen="true"
+            tools:targetApi="o_mr1"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize">
+            <layout
+                android:defaultWidth="400dp"
+                android:defaultHeight="600dp"
+                android:gravity="top|end" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

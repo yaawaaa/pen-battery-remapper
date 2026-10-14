@@ -22,4 +22,7 @@ interface BatteryLogDao {
 
     @Query("DELETE FROM battery_logs")
     suspend fun clearLogs()
+
+    @Query("DELETE FROM battery_logs WHERE id NOT IN (SELECT id FROM battery_logs ORDER BY timestamp DESC LIMIT :maxEntries)")
+    suspend fun pruneOldLogs(maxEntries: Int = 300)
 }
